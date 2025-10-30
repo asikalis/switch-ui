@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback } from "react";
 import API from "../api/api";
 import { useNavigate } from "react-router-dom";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
 
 function Dashboard() {
     const [user, setUser] = useState(null);
@@ -120,22 +122,51 @@ function Dashboard() {
 
     // Show dashboard content
     return (
-        <div style={{ padding: "20px" }}>
-            <di></di>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-                <h2>Welcome, {user?.return_body?.username || user?.name || "User"}!</h2>
-                <button onClick={logout} style={{ padding: "10px 20px", backgroundColor: "#4a90e2", color: "white", border: "none", borderRadius: "5px", cursor: "pointer", fontWeight: "600" }}>
-                    Logout
-                </button>
+        <>
+            <Header onLogout={logout} user={user} />
+            <div style={{ padding: "20px" }}>
+                <div style={{ marginBottom: "30px" }}>
+                    <h2>Welcome, {user?.return_body?.username || user?.name || "User"}!</h2>
+                </div>
+                
+                <div style={{ marginBottom: "20px" }}>
+                    <p><strong>Email:</strong> {user?.return_body?.email || "Not available"}</p>
+                </div>
+
+                {/* User Details Section - Made collapsible */}
+                <div style={{ marginTop: "30px" }}>
+                    <details style={{ 
+                        backgroundColor: "#f8f9fa", 
+                        padding: "15px", 
+                        borderRadius: "8px",
+                        border: "1px solid #dee2e6"
+                    }}>
+                        <summary style={{ 
+                            cursor: "pointer", 
+                            fontWeight: "bold",
+                            fontSize: "16px",
+                            marginBottom: "10px",
+                            color: "#495057"
+                        }}>
+                            View Full User Details
+                        </summary>
+                        <pre style={{ 
+                            textAlign: "left", 
+                            background: "#ffffff", 
+                            padding: "15px", 
+                            borderRadius: "5px",
+                            border: "1px solid #e9ecef",
+                            overflow: "auto",
+                            fontSize: "12px",
+                            lineHeight: "1.4"
+                        }}>
+                            {JSON.stringify(user.return_body, null, 2)}
+                        </pre>
+                    </details>
+                </div>
             </div>
-            <p>Email: {user?.return_body?.email || "Not available"}</p>
-            <div style={{ marginTop: "20px" }}>
-                <h3>User Details:</h3>
-                <pre style={{ textAlign: "left", background: "#f5f5f5", padding: "10px", borderRadius: "5px" }}>
-                    {JSON.stringify(user.return_body, null, 2)}
-                </pre>
-            </div>
-        </div>
+            
+        </>
     );
 }
 

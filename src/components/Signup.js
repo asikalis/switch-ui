@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import API from "../api/api";
+import Footer from "./Footer";
 import { useNavigate } from "react-router-dom";
 
 function Signup() {
@@ -37,6 +38,7 @@ function Signup() {
     };
 
     return (
+        <>
         <div className="auth-container">
             <h2>Signup</h2>
             <form onSubmit={handleSubmit}>
@@ -76,6 +78,8 @@ function Signup() {
                 <button type="submit">Signup</button>
             </form>
         </div>
+         <Footer />
+         </>
     );
 }
 

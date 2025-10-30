@@ -1,5 +1,17 @@
+/* Global body styling for fixed footer */
+body {
+  margin: 0;
+  padding: 0;
+  padding-bottom: 60px; /* Space for fixed footer */
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
 .App {
   text-align: center;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .App-logo {
@@ -41,6 +53,7 @@
 .auth-container {
   max-width: 400px;
   margin: 50px auto;
+  margin-bottom: 100px; /* Extra space for footer */
   padding: 40px;
   background-color: #ffffff;
   border-radius: 12px;
@@ -107,33 +120,37 @@
   color: #666;
   font-size: 14px;
 }
-
-.auth-container button[type="button"] {
-  padding: 10px 16px;
-  background-color: transparent;
-  color: #4a90e2;
-  border: 2px solid #4a90e2;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.auth-container button[type="button"]:hover {
-  background-color: #4a90e2;
-  color: white;
-  transform: translateY(-1px);
-}
-
 /* Responsive Design */
 @media (max-width: 768px) {
+  body {
+    padding-bottom: 80px; /* More space for footer on mobile */
+  }
+  
   .auth-container {
     margin: 20px;
+    margin-bottom: 120px; /* Extra space for footer on mobile */
     padding: 30px 20px;
   }
   
   .auth-container h2 {
     font-size: 24px;
+  }
+}
+
+/* Tablet responsiveness */
+@media (min-width: 769px) and (max-width: 1024px) {
+  body {
+    padding-bottom: 70px;
+  }
+  
+  .auth-container {
+    margin-bottom: 110px;
+  }
+}
+
+/* Large screens */
+@media (min-width: 1025px) {
+  body {
+    padding-bottom: 60px;
   }
 }

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import API from "../api/api";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
 import { useNavigate } from "react-router-dom";
 import "../App.css"; // Import CSS styles
 
@@ -172,7 +174,9 @@ function Login() {
     };
 
     return (
-        <div className="auth-container">
+        <>
+      <Header />
+      <div className="auth-container">
             <h2>Login</h2>
             {error && <div className="error-message" style={{color: 'red', marginBottom: '10px'}}>{error}</div>}
             <form onSubmit={handleSubmit}>
@@ -199,10 +203,12 @@ function Login() {
                 </button>
             </form>
             <p>Don't have an account?</p>
-            <button type="button" onClick={handleSignupClick} disabled={loading}>
+            <button type="button" onClick={handleSignupClick} disabled={loading} style={{ padding: "10px 20px", backgroundColor: "#4a90e2", color: "white", border: "none", borderRadius: "5px", cursor: "pointer", fontWeight: "600" }}>
                 Sign Up
             </button>
         </div>
+      <Footer />
+    </>
     );
 }
 
