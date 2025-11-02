@@ -47,4 +47,27 @@ API.interceptors.response.use(
     }
 );
 
+// API Functions
+export const resetPassword = async (username, newPassword) => {
+    try {
+        const response = await API.put(`/users/${username}/reset-password`, {
+            newPassword: newPassword
+        });
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+// Add function to fetch roles from the server
+export const fetchRoles = async () => {
+    try {
+        const response = await API.get('/roles');
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching roles:', error);
+        throw error;
+    }
+};
+
 export default API;

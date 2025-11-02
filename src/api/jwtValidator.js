@@ -52,7 +52,7 @@ export class JWTValidator {
             return {
                 userId: payload.sub || payload.user_id || payload.id,
                 email: payload.email,
-                roles: payload.roles || payload.role,
+                roles: payload.roles,
                 issuedAt: payload.iat ? new Date(payload.iat * 1000) : null,
                 expiresAt: payload.exp ? new Date(payload.exp * 1000) : null,
                 issuer: payload.iss,

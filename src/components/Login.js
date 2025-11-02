@@ -187,7 +187,8 @@ function Login() {
                     value={formData.email}
                     onChange={handleChange}
                     disabled={loading}
-                    required 
+                    required
+                    autoFocus
                 />
                 <input 
                     name="password" 

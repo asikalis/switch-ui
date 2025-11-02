@@ -8,7 +8,7 @@ function Signup() {
         username: "", 
         email: "", 
         password: "", 
-        role: "USER" // Default role
+        roles: ["ROLE_USER"] // Default role
     });
     const navigate = useNavigate();
 
@@ -19,7 +19,7 @@ function Signup() {
         e.preventDefault();
         
         // Basic validation
-        if (!formData.username || !formData.email || !formData.password || !formData.role) {
+        if (!formData.username || !formData.email || !formData.password || !formData.roles) {
             alert("Please fill in all fields");
             return;
         }
@@ -30,7 +30,7 @@ function Signup() {
             const response = await API.post("/auth/signup", formData);
             console.log("Signup response:", response.data); // Debug log
             alert("Signup successful! Please login.");
-            navigate("/login");
+            navigate("/login-success");
         } catch (err) {
             console.error("Signup error:", err.response?.data || err.message); // Debug log
             alert("Signup failed: " + (err.response?.data?.message || err.message));
@@ -47,7 +47,8 @@ function Signup() {
                     placeholder="Username" 
                     value={formData.username}
                     onChange={handleChange} 
-                    required 
+                    required
+                    autoFocus
                 />
                 <input 
                     name="email" 
@@ -65,16 +66,6 @@ function Signup() {
                     onChange={handleChange} 
                     required 
                 />
-                {/* <select 
-                    name="role" 
-                    value={formData.role}
-                    onChange={handleChange} 
-                    required
-                >
-                    <option value="">Select Role</option>
-                    <option value="USER">User</option>
-                    <option value="ADMIN">Admin</option>
-                </select> */}
                 <button type="submit">Signup</button>
             </form>
         </div>

@@ -120,29 +120,155 @@
   line-height: 1.6;
 }
 
+/* Profile detail items with aligned layout */
 .profile-detail-item {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: 0;
   margin-bottom: 8px;
-  padding: 5px 0;
-  border-bottom: 1px solid #f0f0f0;
+  align-items: center;
 }
 
 .profile-detail-key {
-  color: #555;
+  text-align: left;
+  font-weight: 500;
+  color: #374151;
+  padding-right: 8px;
+  white-space: nowrap;
   text-transform: capitalize;
-  font-weight: bold;
+  min-width: fit-content;
+}
+
+.profile-detail-colon {
+  color: #6b7280;
+  font-weight: 500;
+  text-align: left;
+  width: auto;
+  margin-right: 8px;
 }
 
 .profile-detail-value {
-  color: #333;
-  max-width: 150px;
+  color: #111827;
   word-break: break-word;
 }
 
 .profile-no-details {
   color: #666;
   font-style: italic;
+}
+
+/* Profile Actions Section */
+.profile-dropdown-actions {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
+}
+
+.reset-password-button {
+  width: 100%;
+  padding: 10px 15px;
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+}
+
+.reset-password-button:hover {
+  background-color: #357abd;
+}
+
+/* Reset Password Modal */
+.reset-password-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.reset-password-modal {
+  background-color: white;
+  padding: 30px;
+  border-radius: 8px;
+  min-width: 400px;
+  max-width: 500px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.reset-password-modal-title {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #333;
+  font-size: 20px;
+  text-align: center;
+}
+
+.reset-password-form-group {
+  margin-bottom: 15px;
+}
+
+.reset-password-label {
+  display: block;
+  margin-bottom: 5px;
+  color: #333;
+  font-weight: 500;
+}
+
+.reset-password-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid #e1e5e9;
+  border-radius: 5px;
+  font-size: 14px;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease;
+}
+
+.reset-password-input:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+}
+
+.reset-password-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.reset-password-button.cancel {
+  padding: 10px 20px;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.reset-password-button.submit {
+  padding: 10px 20px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.reset-password-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .logout-button {
