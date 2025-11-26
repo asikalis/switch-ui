@@ -64,9 +64,19 @@ export const usePasswordReset = () => {
     return (
       <div className="reset-password-modal-overlay" onClick={closeResetPasswordModal}>
         <div className="reset-password-modal" onClick={handleModalClick}>
-          <h3 className="reset-password-modal-title">
-            Reset Password for "{targetUsername}"
-          </h3>
+          <div className="reset-password-modal-header">
+            <h3 className="reset-password-modal-title">
+              Reset Password for "{targetUsername}"
+            </h3>
+            <button
+              type="button"
+              onClick={closeResetPasswordModal}
+              className="reset-password-modal-close-button"
+              aria-label="Close modal"
+            >
+              ×
+            </button>
+          </div>
           <form onSubmit={handleResetPassword}>
             <div className="reset-password-form-group">
               <label className="reset-password-label">New Password:</label>

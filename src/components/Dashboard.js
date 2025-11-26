@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import DataTable from "../components/DataTable";
+import BusinessSelector from "../components/BusinessSelector";
 import { usePasswordReset } from "../hooks/usePasswordReset";
 import "./Dashboard.css";
 
@@ -22,6 +23,11 @@ function Dashboard() {
         username: '',
         email: '',
         password: '',
+        firstname: '',
+        lastname: '',
+        displayname: '',
+        dateofbirthDt: '',
+        gender: '',
         roles: ['ROLE_USER']
     });
     const [notification, setNotification] = useState({
@@ -29,11 +35,27 @@ function Dashboard() {
         message: '',
         type: 'success' // 'success' or 'error'
     });
+    // Add state for selected business
+    const [selectedBusiness, setSelectedBusiness] = useState(null);
+    
     const [sortBy, setSortBy] = useState('createdDt');
     const [sortOrder, setSortOrder] = useState('desc'); // 'asc' or 'desc'
     // Add new state for roles
     const [availableRoles, setAvailableRoles] = useState([]);
     const [rolesLoading, setRolesLoading] = useState(false);
+    
+    // Add state for role management
+    const [roles, setRoles] = useState([]);
+    const [rolesDataLoading, setRolesDataLoading] = useState(false);
+    const [editingRole, setEditingRole] = useState(null);
+    const [showEditRoleModal, setShowEditRoleModal] = useState(false);
+    const [editRoleFormData, setEditRoleFormData] = useState({});
+    const [showCreateRoleModal, setShowCreateRoleModal] = useState(false);
+    const [createRoleFormData, setCreateRoleFormData] = useState({
+        name: '',
+        description: ''
+    });
+
     const navigate = useNavigate();
 
     // Use the password reset hook
@@ -306,6 +328,11 @@ function Dashboard() {
         setEditFormData({
             username: user.username || '',
             email: user.email || '',
+            firstname: user.firstname || '',
+            lastname: user.lastname || '',
+            displayname: user.displayname || '',
+            dateofbirthDt: user.dateofbirthDt || '',
+            gender: user.gender || '',
             roles: existingRoles
         });
         setShowEditModal(true);
@@ -316,6 +343,11 @@ function Dashboard() {
             username: '',
             email: '',
             password: '',
+            firstname: '',
+            lastname: '',
+            displayname: '',
+            dateofbirthDt: '',
+            gender: '',
             roles: ['ROLE_USER']
         });
         setShowCreateModal(true);
@@ -401,9 +433,16 @@ function Dashboard() {
             // Add debugging to check what data is being sent
             console.log("Creating user with data:", createFormData);
             
-            // Ensure roles is always an array and not empty
+            // Ensure all fields are properly formatted and included
             const userData = {
-                ...createFormData,
+                username: createFormData.username,
+                email: createFormData.email,
+                password: createFormData.password,
+                firstname: createFormData.firstname || null,
+                lastname: createFormData.lastname || null,
+                displayname: createFormData.displayname || null,
+                dateofbirthDt: createFormData.dateofbirthDt || null,
+                gender: createFormData.gender || null,
                 roles: Array.isArray(createFormData.roles) && createFormData.roles.length > 0 
                     ? createFormData.roles 
                     : ['ROLE_USER']
@@ -422,6 +461,11 @@ function Dashboard() {
                 username: '',
                 email: '',
                 password: '',
+                firstname: '',
+                lastname: '',
+                displayname: '',
+                dateofbirthDt: '',
+                gender: '',
                 roles: ['ROLE_USER']
             });
             fetchUsers();
@@ -544,6 +588,200 @@ function Dashboard() {
         }
     }, [notification.show]);
 
+    // Role management functions
+    const fetchRolesData = async () => {
+        try {
+            setRolesDataLoading(true);
+            const { data } = await API.get('/roles');
+            console.log("Roles data for management:", data);
+            
+            // Handle different response formats
+            let rolesData = [];
+            if (data.return_body && Array.isArray(data.return_body)) {
+                rolesData = data.return_body;
+            } else if (Array.isArray(data)) {
+                rolesData = data;
+            } else if (data.roles && Array.isArray(data.roles)) {
+                rolesData = data.roles;
+            } else {
+                // If API returns simple array of role names, create objects
+                rolesData = ['ROLE_USER', 'ROLE_ADMIN', 'ROLE_MODERATOR', 'ROLE_EDITOR'].map((role, index) => ({
+                    id: index + 1,
+                    name: role,
+                    description: `${role.replace('ROLE_', '').toLowerCase()} role`,
+                    createdDt: new Date().toISOString()
+                }));
+            }
+            
+            setRoles(rolesData);
+        } catch (err) {
+            console.error("Error fetching roles data:", err);
+            // Fallback data if API fails
+            setRoles([
+                { id: 1, name: 'ROLE_USER', description: 'Standard user role', createdDt: new Date().toISOString() },
+                { id: 2, name: 'ROLE_ADMIN', description: 'Administrator role', createdDt: new Date().toISOString() },
+                { id: 3, name: 'ROLE_MODERATOR', description: 'Moderator role', createdDt: new Date().toISOString() },
+                { id: 4, name: 'ROLE_EDITOR', description: 'Editor role', createdDt: new Date().toISOString() }
+            ]);
+        } finally {
+            setRolesDataLoading(false);
+        }
+    };
+
+    const handleDeleteRole = async (roleId) => {
+        if (!window.confirm("Are you sure you want to delete this role?")) {
+            return;
+        }
+
+        try {
+            await API.delete(`/roles/${roleId}`);
+            setNotification({
+                show: true,
+                message: "Role deleted successfully!",
+                type: 'success'
+            });
+            fetchRolesData();
+        } catch (err) {
+            console.error("Error deleting role:", err);
+            setNotification({
+                show: true,
+                message: "Failed to delete role: " + (err.response?.data?.message || err.message),
+                type: 'error'
+            });
+        }
+    };
+
+    const handleBulkDeleteRoles = async (roleIds) => {
+        try {
+            const deletePromises = roleIds.map(roleId => 
+                API.delete(`/roles/${roleId}`)
+            );
+            
+            await Promise.allSettled(deletePromises);
+            
+            setNotification({
+                show: true,
+                message: `Successfully deleted ${roleIds.length} role(s)!`,
+                type: 'success'
+            });
+            
+            fetchRolesData();
+        } catch (err) {
+            console.error("Error during bulk delete roles:", err);
+            setNotification({
+                show: true,
+                message: "Failed to delete some roles: " + (err.response?.data?.message || err.message),
+                type: 'error'
+            });
+        }
+    };
+
+    const handleEditRole = (role) => {
+        setEditingRole(role);
+        setEditRoleFormData({
+            name: role.name || '',
+            description: role.description || ''
+        });
+        setShowEditRoleModal(true);
+    };
+
+    const handleCreateRole = () => {
+        setCreateRoleFormData({
+            name: '',
+            description: ''
+        });
+        setShowCreateRoleModal(true);
+    };
+
+    const handleCreateRoleFormChange = (e) => {
+        const { name, value } = e.target;
+        setCreateRoleFormData({
+            ...createRoleFormData,
+            [name]: value
+        });
+    };
+
+    const handleEditRoleFormChange = (e) => {
+        const { name, value } = e.target;
+        setEditRoleFormData({
+            ...editRoleFormData,
+            [name]: value
+        });
+    };
+
+    const handleCreateRoleSubmit = async (e) => {
+        e.preventDefault();
+
+        try {
+            console.log("Creating role with data:", createRoleFormData);
+            
+            await API.post('/roles', createRoleFormData);
+            setNotification({
+                show: true,
+                message: "Role created successfully!",
+                type: 'success'
+            });
+            setShowCreateRoleModal(false);
+            setCreateRoleFormData({
+                name: '',
+                description: ''
+            });
+            fetchRolesData();
+            fetchRoles(); // Refresh available roles for user management
+        } catch (err) {
+            console.error("Error creating role:", err);
+            setNotification({
+                show: true,
+                message: "Failed to create role: " + (err.response?.data?.message || err.message),
+                type: 'error'
+            });
+        }
+    };
+
+    const handleEditRoleSubmit = async (e) => {
+        e.preventDefault();
+
+        try {
+            const roleId = editingRole.id || editingRole.name;
+            await API.put(`/roles/${roleId}`, editRoleFormData);
+            setNotification({
+                show: true,
+                message: "Role updated successfully!",
+                type: 'success'
+            });
+            setShowEditRoleModal(false);
+            setEditingRole(null);
+            fetchRolesData();
+            fetchRoles(); // Refresh available roles for user management
+        } catch (err) {
+            console.error("Error updating role:", err);
+            setNotification({
+                show: true,
+                message: "Failed to update role: " + (err.response?.data?.message || err.message),
+                type: 'error'
+            });
+        }
+    };
+
+    // Add function to handle business change
+    const handleBusinessChange = (business) => {
+        setSelectedBusiness(business);
+        console.log("Selected business changed:", business);
+    };
+
+    // Add function to handle business selector notifications
+    const handleBusinessNotification = (notificationData) => {
+        setNotification(notificationData);
+    };
+
+    useEffect(() => {
+        if (activeTab === "users") {
+            fetchUsers();
+        } else if (activeTab === "roles") {
+            fetchRolesData();
+        }
+    }, [activeTab]);
+
     if (loading) {
         return (
             <div className="dashboard-loading">
@@ -615,24 +853,21 @@ function Dashboard() {
 
     const renderOverviewTab = () => (
         <div className="dashboard-content-padding">
+            {/* User Welcome Section - Moved to top */}
             <div className="overview-welcome">
                 <h2>Welcome, {user?.return_body?.username || user?.name || "User"}!</h2>
+                {selectedBusiness && (
+                    <p className="business-context">
+                        You are currently managing <strong>{selectedBusiness.name}</strong>
+                    </p>
+                )}
             </div>
 
-            <div className="overview-email">
-                <p><strong>Email:</strong> {user?.return_body?.email || "Not available"}</p>
-            </div>
-
-            <div className="overview-details">
-                <details className="user-details-collapsible">
-                    <summary className="user-details-summary">
-                        View Full User Details
-                    </summary>
-                    <pre className="user-details-pre">
-                        {JSON.stringify(user.return_body, null, 2)}
-                    </pre>
-                </details>
-            </div>
+            {/* Business Selector Component */}
+            <BusinessSelector 
+                onBusinessChange={handleBusinessChange}
+                onNotification={handleBusinessNotification}
+            />
         </div>
     );
 
@@ -654,41 +889,77 @@ function Dashboard() {
                 filterable: true
             },
             {
-                key: 'roles',
-                header: 'Roles',
-                sortable: false,
-                render: (roles, user) => {
-                    // Handle different role formats
-                    let processedRoles = roles;
-                    
-                    if (!processedRoles) {
-                        processedRoles = ['ROLE_USER'];
-                    } else if (typeof processedRoles === 'string') {
-                        processedRoles = [processedRoles];
-                    } else if (typeof processedRoles === 'object' && !Array.isArray(processedRoles)) {
-                        if (processedRoles.name) {
-                            processedRoles = [processedRoles.name];
-                        } else {
-                            processedRoles = Object.values(processedRoles).filter(Boolean);
-                        }
-                    } else if (!Array.isArray(processedRoles)) {
-                        processedRoles = ['ROLE_USER'];
-                    }
-                    
-                    return processedRoles.map((role, roleIndex) => {
-                        const roleText = typeof role === 'object' ? (role.name || role.role || 'ROLE_USER') : role;
-                        return (
-                            <span
-                                key={roleIndex}
-                                className="data-table-array-item"
-                                style={{ marginRight: '4px' }}
-                            >
-                                {roleText}
-                            </span>
-                        );
-                    });
-                }
+                key: 'firstname',
+                header: 'Firstname',
+                sortable: true,
+                filterable: true
             },
+            {
+                key: 'lastname',
+                header: 'Lastname',
+                sortable: true,
+                filterable: true
+            },
+            {
+                key: 'displayname',
+                header: 'Displayname',
+                sortable: true,
+                filterable: false
+            },
+            {
+                key: 'gender',
+                header: 'Gender',
+                sortable: true,
+                filterable: false
+            },
+            {
+                key: 'dateofbirthDt',
+                header: 'Date Of Birth',
+                sortable: true,
+                filterable: true
+            },
+            {
+                key: 'phonenumber',
+                header: 'Phone Number',
+                sortable: true,
+                filterable: false
+            },
+            // {
+            //     key: 'roles',
+            //     header: 'Roles',
+            //     sortable: false,
+            //     render: (roles, user) => {
+            //         // Handle different role formats
+            //         let processedRoles = roles;
+                    
+            //         if (!processedRoles) {
+            //             processedRoles = ['ROLE_USER'];
+            //         } else if (typeof processedRoles === 'string') {
+            //             processedRoles = [processedRoles];
+            //         } else if (typeof processedRoles === 'object' && !Array.isArray(processedRoles)) {
+            //             if (processedRoles.name) {
+            //                 processedRoles = [processedRoles.name];
+            //             } else {
+            //                 processedRoles = Object.values(processedRoles).filter(Boolean);
+            //             }
+            //         } else if (!Array.isArray(processedRoles)) {
+            //             processedRoles = ['ROLE_USER'];
+            //         }
+                    
+            //         return processedRoles.map((role, roleIndex) => {
+            //             const roleText = typeof role === 'object' ? (role.name || role.role || 'ROLE_USER') : role;
+            //             return (
+            //                 <span
+            //                     key={roleIndex}
+            //                     className="data-table-array-item"
+            //                     style={{ marginRight: '4px' }}
+            //                 >
+            //                     {roleText}
+            //                 </span>
+            //             );
+            //         });
+            //     }
+            // },
             {
                 key: 'createdDt',
                 header: 'Created Date',
@@ -766,8 +1037,18 @@ function Dashboard() {
                         {/* Edit User Modal */}
                         {showEditModal && (
                             <div className="modal-overlay">
-                                <div className="modal-content">
-                                    <h3 className="modal-title">Edit User</h3>
+                                <div className="modal-content" style={{ maxHeight: '80vh', overflowY: 'auto' }}>
+                                    <div className="modal-header">
+                                        <h3 className="modal-title">Edit User</h3>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowEditModal(false)}
+                                            className="modal-close-button"
+                                            aria-label="Close modal"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
                                     <form onSubmit={handleEditSubmit}>
                                         <div className="modal-form-group">
                                             <label className="modal-label">Username:</label>
@@ -791,6 +1072,60 @@ function Dashboard() {
                                                 className="modal-input"
                                                 required
                                             />
+                                        </div>
+                                        <div className="modal-form-group">
+                                            <label className="modal-label">First Name:</label>
+                                            <input
+                                                type="text"
+                                                name="firstname"
+                                                value={editFormData.firstname}
+                                                onChange={handleEditFormChange}
+                                                className="modal-input"
+                                            />
+                                        </div>
+                                        <div className="modal-form-group">
+                                            <label className="modal-label">Last Name:</label>
+                                            <input
+                                                type="text"
+                                                name="lastname"
+                                                value={editFormData.lastname}
+                                                onChange={handleEditFormChange}
+                                                className="modal-input"
+                                            />
+                                        </div>
+                                        <div className="modal-form-group">
+                                            <label className="modal-label">Display Name:</label>
+                                            <input
+                                                type="text"
+                                                name="displayname"
+                                                value={editFormData.displayname}
+                                                onChange={handleEditFormChange}
+                                                className="modal-input"
+                                            />
+                                        </div>
+                                        <div className="modal-form-group">
+                                            <label className="modal-label">Date of Birth:</label>
+                                            <input
+                                                type="date"
+                                                name="dateofbirthDt"
+                                                value={editFormData.dateofbirthDt}
+                                                onChange={handleEditFormChange}
+                                                className="modal-input"
+                                            />
+                                        </div>
+                                        <div className="modal-form-group">
+                                            <label className="modal-label">Gender:</label>
+                                            <select
+                                                name="gender"
+                                                value={editFormData.gender}
+                                                onChange={handleEditFormChange}
+                                                className="modal-input"
+                                            >
+                                                <option value="">Select Gender</option>
+                                                <option value="male">Male</option>
+                                                <option value="female">Female</option>
+                                                <option value="other">Other</option>
+                                            </select>
                                         </div>
                                         <div className="modal-form-group buttons">
                                             <label className="modal-label">Roles:</label>
@@ -842,8 +1177,18 @@ function Dashboard() {
                         {/* Create User Modal */}
                         {showCreateModal && (
                             <div className="modal-overlay">
-                                <div className="modal-content">
-                                    <h3 className="modal-title">Create New User</h3>
+                                <div className="modal-content" style={{ maxHeight: '80vh', overflowY: 'auto' }}>
+                                    <div className="modal-header">
+                                        <h3 className="modal-title">Create New User</h3>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowCreateModal(false)}
+                                            className="modal-close-button"
+                                            aria-label="Close modal"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
                                     <form onSubmit={handleCreateSubmit}>
                                         <div className="modal-form-group">
                                             <label className="modal-label">Username:</label>
@@ -878,6 +1223,60 @@ function Dashboard() {
                                                 className="modal-input"
                                                 required
                                             />
+                                        </div>
+                                        <div className="modal-form-group">
+                                            <label className="modal-label">First Name:</label>
+                                            <input
+                                                type="text"
+                                                name="firstname"
+                                                value={createFormData.firstname}
+                                                onChange={handleCreateFormChange}
+                                                className="modal-input"
+                                            />
+                                        </div>
+                                        <div className="modal-form-group">
+                                            <label className="modal-label">Last Name:</label>
+                                            <input
+                                                type="text"
+                                                name="lastname"
+                                                value={createFormData.lastname}
+                                                onChange={handleCreateFormChange}
+                                                className="modal-input"
+                                            />
+                                        </div>
+                                        <div className="modal-form-group">
+                                            <label className="modal-label">Display Name:</label>
+                                            <input
+                                                type="text"
+                                                name="displayname"
+                                                value={createFormData.displayname}
+                                                onChange={handleCreateFormChange}
+                                                className="modal-input"
+                                            />
+                                        </div>
+                                        <div className="modal-form-group">
+                                            <label className="modal-label">Date of Birth:</label>
+                                            <input
+                                                type="date"
+                                                name="dateofbirthDt"
+                                                value={createFormData.dateofbirthDt}
+                                                onChange={handleCreateFormChange}
+                                                className="modal-input"
+                                            />
+                                        </div>
+                                        <div className="modal-form-group">
+                                            <label className="modal-label">Gender:</label>
+                                            <select
+                                                name="gender"
+                                                value={createFormData.gender}
+                                                onChange={handleCreateFormChange}
+                                                className="modal-input"
+                                            >
+                                                <option value="">Select Gender</option>
+                                                <option value="male">Male</option>
+                                                <option value="female">Female</option>
+                                                <option value="other">Other</option>
+                                            </select>
                                         </div>
                                         <div className="modal-form-group buttons">
                                             <label className="modal-label">Roles:</label>
@@ -919,6 +1318,226 @@ function Dashboard() {
                                                 className="modal-button submit"
                                             >
                                                 Create User
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+        );
+    };
+
+    const renderRolesTab = () => {
+        const isAdmin = hasAdminPermission();
+        
+        // Define columns for the Role DataTable
+        const roleColumns = [
+            {
+                key: 'name',
+                header: 'Role Name',
+                sortable: true,
+                filterable: true
+            },
+            {
+                key: 'description',
+                header: 'Description',
+                sortable: true,
+                filterable: true
+            },
+            {
+                key: 'createdDt',
+                header: 'Created Date',
+                type: 'date',
+                sortable: true,
+                render: (date) => new Date(date).toLocaleString('sv-SE')
+            }
+        ];
+
+        return (
+            <div className="dashboard-content-padding">
+                {/* Show role-based welcome message */}
+                <div className="roles-tab-header">
+                    <h2>Role Management</h2>
+                    {!isAdmin && (
+                        <div className="user-role-notice">
+                            <p><strong>Note:</strong> You have view-only access to the roles directory. Contact an administrator for role management actions.</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Show create/refresh buttons only for admins */}
+                {isAdmin && (
+                    <div className="users-header">
+                        <div className="users-header-actions">
+                            <button
+                                onClick={handleCreateRole}
+                                className="users-create-button"
+                            >
+                                ➕ Create New Role
+                            </button>
+                            <button
+                                onClick={fetchRolesData}
+                                className="users-refresh-button"
+                            >
+                                🔄 Refresh
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Show refresh button for non-admins */}
+                {!isAdmin && (
+                    <div className="users-header">
+                        <div className="users-header-actions">
+                            <button
+                                onClick={fetchRolesData}
+                                className="users-refresh-button"
+                            >
+                                🔄 Refresh Directory
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                <DataTable
+                    data={roles}
+                    columns={roleColumns}
+                    loading={rolesDataLoading}
+                    onEdit={isAdmin ? handleEditRole : null}
+                    onDelete={isAdmin ? handleDeleteRole : null}
+                    onBulkDelete={isAdmin ? handleBulkDeleteRoles : null}
+                    title={isAdmin ? "Role Management" : "Roles Directory"}
+                    searchable={true}
+                    sortable={true}
+                    paginated={true}
+                    pageSize={10}
+                    selectable={isAdmin}
+                />
+
+                {/* Admin-only modals */}
+                {isAdmin && (
+                    <>
+                        {/* Edit Role Modal */}
+                        {showEditRoleModal && (
+                            <div className="modal-overlay">
+                                <div className="modal-content">
+                                    <div className="modal-header">
+                                        <h3 className="modal-title">Edit Role</h3>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowEditRoleModal(false)}
+                                            className="modal-close-button"
+                                            aria-label="Close modal"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                    <form onSubmit={handleEditRoleSubmit}>
+                                        <div className="modal-form-group">
+                                            <label className="modal-label">Role Name:</label>
+                                            <input
+                                                type="text"
+                                                name="name"
+                                                value={editRoleFormData.name}
+                                                onChange={handleEditRoleFormChange}
+                                                className="modal-input"
+                                                required
+                                                autoFocus
+                                                placeholder="e.g., ROLE_MANAGER"
+                                            />
+                                        </div>
+                                        <div className="modal-form-group">
+                                            <label className="modal-label">Description:</label>
+                                            <input
+                                                type="text"
+                                                name="description"
+                                                value={editRoleFormData.description}
+                                                onChange={handleEditRoleFormChange}
+                                                className="modal-input"
+                                                required
+                                                placeholder="Brief description of the role"
+                                            />
+                                        </div>
+                                        <div className="modal-buttons">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowEditRoleModal(false)}
+                                                className="modal-button cancel"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                className="modal-button submit"
+                                            >
+                                                Update Role
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Create Role Modal */}
+                        {showCreateRoleModal && (
+                            <div className="modal-overlay">
+                                <div className="modal-content">
+                                    <div className="modal-header">
+                                        <h3 className="modal-title">Create New Role</h3>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowCreateRoleModal(false)}
+                                            className="modal-close-button"
+                                            aria-label="Close modal"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                    <form onSubmit={handleCreateRoleSubmit}>
+                                        <div className="modal-form-group">
+                                            <label className="modal-label">Role Name:</label>
+                                            <input
+                                                type="text"
+                                                name="name"
+                                                value={createRoleFormData.name}  
+                                                onChange={handleCreateRoleFormChange}
+                                                className="modal-input"
+                                                required
+                                                autoFocus
+                                                placeholder="e.g., ROLE_MANAGER"
+                                            />
+                                            <small style={{ color: '#666', fontSize: '12px' }}>
+                                                Role names typically start with "ROLE_" (e.g., ROLE_MANAGER, ROLE_EDITOR)
+                                            </small>
+                                        </div>
+                                        <div className="modal-form-group">
+                                            <label className="modal-label">Description:</label>
+                                            <input
+                                                type="text"
+                                                name="description"
+                                                value={createRoleFormData.description}
+                                                onChange={handleCreateRoleFormChange}
+                                                className="modal-input"
+                                                required
+                                                placeholder="Brief description of the role"
+                                            />
+                                        </div>
+                                        <div className="modal-buttons">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowCreateRoleModal(false)}
+                                                className="modal-button cancel"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                className="modal-button submit"
+                                            >
+                                                Create Role
                                             </button>
                                         </div>
                                     </form>
@@ -974,6 +1593,16 @@ function Dashboard() {
                             {hasAdminPermission() && (
                                 <li>
                                     <button
+                                        onClick={() => setActiveTab("roles")}
+                                        className={`dashboard-nav-button ${activeTab === "roles" ? "active" : "inactive"}`}
+                                    >
+                                        🔐 Roles
+                                    </button>
+                                </li>
+                            )}
+                            {hasAdminPermission() && (
+                                <li>
+                                    <button
                                         onClick={() => setActiveTab("admin")}
                                         className={`dashboard-nav-button ${activeTab === "admin" ? "active" : "inactive"}`}
                                     >
@@ -988,6 +1617,7 @@ function Dashboard() {
                 <div className="dashboard-main-content">
                     {activeTab === "overview" && renderOverviewTab()}
                     {activeTab === "users" && renderUsersTab()}
+                    {activeTab === "roles" && renderRolesTab()}
                     {activeTab === "admin" && hasAdminPermission() && (
                         <div className="dashboard-content-padding">
                             <h2>Admin Panel</h2>
